@@ -42,7 +42,6 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_JMX_PORT: 9101
       KAFKA_JMX_HOSTNAME: localhost
-      KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker:29092
       CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
       CONFLUENT_METRICS_ENABLE: 'false'
@@ -56,8 +55,8 @@ services:
       retries: 5
 
 
-  spark_master:
-    container_name: spark_master
+  spark-master:
+    container_name: spark-master
     build: ./spark
     command: bin/spark-class org.apache.spark.deploy.master.Master
     ports:
@@ -65,12 +64,13 @@ services:
       - "7077:7077"
     networks:
       - confluent
-  spark_worker:
-    container_name: spark_worker
+
+  spark-worker:
+    container_name: spark-worker
     build: ./spark
     command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
     depends_on:
-      - spark_master
+      - spark-master
     environment:
       SPARK_MODE: worker
       SPARK_WORKER_CORES: 2

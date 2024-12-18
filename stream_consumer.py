@@ -26,8 +26,8 @@ def create_table(session):
             contract_name TEXT,
             name TEXT,
             address TEXT,
-            lattitude flaot,
-            longitude flaot,
+            lattitude float,
+            longitude float,
             status TEXT,
             total_bike_stands INT,
             available_bike_stands INT,
@@ -43,7 +43,7 @@ def create_spark_connection():
     try:
         s_conn = SparkSession.builder \
             .appName('SparkDataStreaming') \
-            .master("spark://spark_master:7077") \
+            .master("spark://spark-master:7077") \
             .config('spark.cassandra.connection.host', 'cassandra') \
             .getOrCreate()
 
@@ -89,9 +89,9 @@ def create_selection_df_from_kafka(spark_df):
     StructField("lattitude", FloatType(), True),
     StructField("longitude", FloatType(), True),
     StructField("status", StringType(), True),
-    StructField("total_bike_stands", StringType(), True),
-    StructField("available_bike_stands", StringType(), True),
-    StructField("available_bikes", StringType(), True),
+    StructField("total_bike_stands", IntegerType(), True),
+    StructField("available_bike_stands", IntegerType(), True),
+    StructField("available_bikes", IntegerType(), True),
     StructField("last_update", StringType(), True)
     ])
     try:
@@ -110,10 +110,12 @@ def main():
     if spark_conn is not None:
         # Connect to Kafka
         spark_df = connect_to_kafka(spark_conn)
+        print(spark_df)
 
         if spark_df is not None:
             # Create selection DataFrame
             selection_df = create_selection_df_from_kafka(spark_df)
+            print(selection_df)
 
             if selection_df is not None:
                 # Create Cassandra connection
