@@ -30,7 +30,7 @@ def main():
             station_data = {
                 'number': station['number'],
                 'contract_name': station['contract_name'],
-                'name': station['name'],
+                'station_name': station['name'],
                 'address': station['address'],
                 'status': station['status'],
                 'lattitude': station['position']['lat'],
@@ -41,7 +41,7 @@ def main():
                 'last_update': station['last_update']
             }
             # Send formatted data to Kafka topic
-            producer.send("cycling_stations", station_data)
+            producer.send("stations", station_data)
         logging.info("{} Produced {} station records".format(time.time(), len(stations_data)))
         time.sleep(60)
 

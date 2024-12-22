@@ -21,10 +21,10 @@ def create_keyspace(session):
 def create_table(session):
     try:
         session.execute("""
-        CREATE TABLE IF NOT EXISTS spark_streams.cycling_stations (
+        CREATE TABLE IF NOT EXISTS spark_streams.stations (
             number INT PRIMARY KEY,
             contract_name TEXT,
-            name TEXT,
+            station_name TEXT,
             address TEXT,
             lattitude float,
             longitude float,
@@ -37,7 +37,6 @@ def create_table(session):
         logging.info("Table created successfully!")
     except Exception as e:
         logging.error(f"Error creating table: {e}")
-
 
 def create_spark_connection():
     try:
@@ -59,8 +58,8 @@ def connect_to_kafka(spark_conn):
     try:
         spark_df = spark_conn.readStream \
             .format('kafka') \
-            .option('kafka.bootstrap.servers', 'broker:9092') \
-            .option('subscribe', 'cycling_stations') \
+            .option('kafka.bootstrap.servers', 'kafka:29092') \
+            .option('subscribe', 'stations') \
             .option('startingOffsets', 'earliest') \
             .load()
         logging.info("Kafka dataframe created successfully")
@@ -82,17 +81,17 @@ def create_cassandra_connection():
 
 def create_selection_df_from_kafka(spark_df):
     schema = StructType([
-    StructField("number", IntegerType(), True),
-    StructField("contract_name", StringType(), True),
-    StructField("name", StringType(), True),
-    StructField("address", StringType(), True),
-    StructField("lattitude", FloatType(), True),
-    StructField("longitude", FloatType(), True),
-    StructField("status", StringType(), True),
-    StructField("total_bike_stands", IntegerType(), True),
-    StructField("available_bike_stands", IntegerType(), True),
-    StructField("available_bikes", IntegerType(), True),
-    StructField("last_update", StringType(), True)
+    StructField("number", IntegerType(), False),
+    StructField("contract_name", StringType(), False),
+    StructField("station_name", StringType(), False),
+    StructField("address", StringType(), False),
+    StructField("lattitude", FloatType(), False),
+    StructField("longitude", FloatType(), False),
+    StructField("status", StringType(), False),
+    StructField("total_bike_stands", IntegerType(), False),
+    StructField("available_bike_stands", IntegerType(), False),
+    StructField("available_bikes", IntegerType(), False),
+    StructField("last_update", StringType(), False)
     ])
     try:
         sel = spark_df.selectExpr("CAST(value AS STRING)") \
@@ -110,30 +109,22 @@ def main():
     if spark_conn is not None:
         # Connect to Kafka
         spark_df = connect_to_kafka(spark_conn)
-        print(spark_df)
-
         if spark_df is not None:
             # Create selection DataFrame
             selection_df = create_selection_df_from_kafka(spark_df)
-            print(selection_df)
-
             if selection_df is not None:
                 # Create Cassandra connection
                 session = create_cassandra_connection()
-
                 if session is not None:
                     create_keyspace(session)
                     create_table(session)
-
                     logging.info("Streaming is being started...")
-
                     streaming_query = (selection_df.writeStream
                                        .format("org.apache.spark.sql.cassandra")
                                        .option('checkpointLocation', '/tmp/checkpoint')
                                        .option('keyspace', 'spark_streams')
-                                       .option('table', 'cycling_stations')
+                                       .option('table', 'stations')
                                        .start())
-
                     streaming_query.awaitTermination()
                 else:
                     logging.error("Failed to create Cassandra session")
